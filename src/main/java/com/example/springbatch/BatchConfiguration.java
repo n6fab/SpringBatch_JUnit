@@ -6,17 +6,23 @@ import org.springframework.batch.core.configuration.annotation.EnableBatchProces
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
+import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
+import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
+import org.springframework.batch.item.file.transform.PassThroughLineAggregator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 
 import javax.sql.DataSource;
 
@@ -32,6 +38,8 @@ public class BatchConfiguration {
     public JobBuilderFactory jobBuilderFactory;
     @Autowired
     public StepBuilderFactory stepBuilderFactory;
+    @Autowired
+    private DataSource dataSource;
 
 //Aggiungiamo i bean alla classe BatchConfiguration per definire un reader, un processor e un writer:
 
@@ -48,10 +56,23 @@ public class BatchConfiguration {
                 }})
                 .build();
     }
+    @Bean
+    public ItemReader<Person> itemReader(DataSource dataSource) {
+        return new JdbcCursorItemReaderBuilder<Person>()
+                .name("cursorItemReader")
+                .dataSource(dataSource)
+                .sql("SELECT first_name, last_name FROM people")
+                .rowMapper(new BeanPropertyRowMapper<>(Person.class))
+                .build();
+    }
 
     @Bean
-    public PersonItemProcessor processor() { //processor() crea un'istanza del PersonItemProcessor definito in precedenza, che ha lo scopo di convertire i dati in maiuscolo
-        return new PersonItemProcessor();
+    public ProcessorStep1 processor1() { //processor() crea un'istanza del PersonItemProcessor definito in precedenza, che ha lo scopo di convertire i dati in maiuscolo
+        return new ProcessorStep1();
+    }
+    @Bean
+    public ProcessorStep2 processor2() {
+        return new ProcessorStep2();
     }
 
     @Bean
@@ -62,13 +83,22 @@ public class BatchConfiguration {
                 .dataSource(dataSource)
                 .build();
     }
+    @Bean
+    public FlatFileItemWriter itemWriter() {
+        return  new FlatFileItemWriterBuilder<Person>()
+                .name("itemWriter")
+                .resource(new FileSystemResource("output.txt"))
+                .lineAggregator(new PassThroughLineAggregator<>())
+                .build();
+    }
     //configurazione effettiva del job
     @Bean
-    public Job importUserJob(JobCompletionNotificationListener listener, Step step1) { //metodo che definisce il job
+    public Job importUserJob(JobCompletionNotificationListener listener, Step step1, Step step2) { //metodo che definisce il job
         return jobBuilderFactory.get("importUserJob")
                 .incrementer(new RunIdIncrementer()) //un incrementatore, perché i jobs utilizzano un database per mantenere lo stato di esecuzione.
                 .listener(listener)
-                .flow(step1) //Si elenca ogni passo (anche se questo lavoro ha un solo passo).
+                .flow(step1) //Si elenca ogni passo
+                .next(step2)
                 .end()
                 .build();//Il lavoro termina e l'API Java produce un lavoro perfettamente configurato.
     }
@@ -79,15 +109,28 @@ public class BatchConfiguration {
     /* Nella definizione dei passi, si definisce la quantità di dati da scrivere alla volta.
     In questo caso, vengono scritti fino a dieci record alla volta.
     Successivamente, si configurano il lettore, il processore e lo scrittore, utilizzando i bean iniettati in precedenza. */
+
+    /* Legge da file e scrive in db */
     @Bean
-    public Step step1(JdbcBatchItemWriter<Person> writer) { //definisce un singolo step
+    public Step step1(JdbcBatchItemWriter<Person> writer) { //definisce un singolo step.
         return stepBuilderFactory.get("step1")
                 .<Person, Person> chunk(10)
                 .reader(reader())
-                .processor(processor())
+                .processor(processor1())
                 .writer(writer)
                 .build();
     }/* chunk() ha il prefisso <Person,Person> perché è un metodo generico.
     Rappresenta i tipi di ingresso e di uscita di ogni "pezzo" di elaborazione e si allinea con ItemReader<Person> e ItemWriter<Person>.*/
 
+    /* Legge da db e scrive in file */
+    @Bean
+    public Step step2(FlatFileItemWriter itemWriter) {
+        //public Step step1(JdbcBatchItemWriter<Person> writer) { //definisce un singolo step
+        return stepBuilderFactory.get("step2")
+                .<Person, Person> chunk(10)
+                .reader(itemReader(dataSource))//reader
+                .processor(processor2())
+                .writer(itemWriter)//writer
+                .build();
+    }
 }
