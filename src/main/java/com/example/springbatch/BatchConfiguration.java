@@ -65,7 +65,18 @@ public class BatchConfiguration {
                 .rowMapper(new BeanPropertyRowMapper<>(Person.class))
                 .build();
     }
-
+    @Bean
+    public FlatFileItemReader<Person> reader2() { // reader() crea un ItemReader e
+        return new FlatFileItemReaderBuilder<Person>()
+                .name("personItemReader")
+                .resource(new ClassPathResource("output.txt")) // cerca un file chiamato sample-data.csv, analizza ogni riga con informazioni sufficienti per
+                .delimited()
+                .names(new String[]{"firstName", "lastName"})
+                .fieldSetMapper(new BeanWrapperFieldSetMapper<Person>() {{ // trasformarla in un Person.
+                    setTargetType(Person.class);
+                }})
+                .build();
+    }
     @Bean
     public ProcessorStep1 processor1() { //processor() crea un'istanza del PersonItemProcessor definito in precedenza, che ha lo scopo di convertire i dati in maiuscolo
         return new ProcessorStep1();
@@ -84,21 +95,30 @@ public class BatchConfiguration {
                 .build();
     }
     @Bean
-    public FlatFileItemWriter itemWriter() {
+    public FlatFileItemWriter itemWriter2() {
         return  new FlatFileItemWriterBuilder<Person>()
                 .name("itemWriter")
                 .resource(new FileSystemResource("output.txt"))
                 .lineAggregator(new PassThroughLineAggregator<>())
                 .build();
     }
+    @Bean
+    public FlatFileItemWriter itemWriter3() {
+        return  new FlatFileItemWriterBuilder<Person>()
+                .name("itemWriter")
+                .resource(new FileSystemResource("outputStep3.txt"))
+                .lineAggregator(new PassThroughLineAggregator<>())
+                .build();
+    }
     //configurazione effettiva del job
     @Bean
-    public Job importUserJob(JobCompletionNotificationListener listener, Step step1, Step step2) { //metodo che definisce il job
+    public Job importUserJob(JobCompletionNotificationListener listener, Step step1, Step step2, Step step3) { //metodo che definisce il job
         return jobBuilderFactory.get("importUserJob")
                 .incrementer(new RunIdIncrementer()) //un incrementatore, perché i jobs utilizzano un database per mantenere lo stato di esecuzione.
                 .listener(listener)
                 .flow(step1) //Si elenca ogni passo
                 .next(step2)
+                .next(step3)
                 .end()
                 .build();//Il lavoro termina e l'API Java produce un lavoro perfettamente configurato.
     }
@@ -124,13 +144,23 @@ public class BatchConfiguration {
 
     /* Legge da db e scrive in file */
     @Bean
-    public Step step2(FlatFileItemWriter itemWriter) {
+    public Step step2(FlatFileItemWriter itemWriter2) {
         //public Step step1(JdbcBatchItemWriter<Person> writer) { //definisce un singolo step
         return stepBuilderFactory.get("step2")
                 .<Person, Person> chunk(10)
                 .reader(itemReader(dataSource))//reader
                 .processor(processor2())
-                .writer(itemWriter)//writer
+                .writer(itemWriter2())//writer
+                .build();
+    }
+    @Bean
+    public Step step3(FlatFileItemWriter itemWriter3) {
+        //public Step step1(JdbcBatchItemWriter<Person> writer) { //definisce un singolo step
+        return stepBuilderFactory.get("step1")
+                .<Person, Person> chunk(10)
+                .reader(reader())
+                .processor(processor1())
+                .writer(itemWriter3)//writer
                 .build();
     }
 }

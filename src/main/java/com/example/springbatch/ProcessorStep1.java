@@ -22,5 +22,4 @@ public class ProcessorStep1 implements ItemProcessor<Person, Person> {
         log.info("Converting (" + person + ") into (" + transformedPerson + ")");
         return transformedPerson;
     }
-        /* final String firstName = person.getFirstName().toLowerCase();   final String lastName = person.getLastName().toLowerCase();*/
 }
