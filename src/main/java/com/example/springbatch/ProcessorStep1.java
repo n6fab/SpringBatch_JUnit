@@ -5,12 +5,7 @@ package com.example.springbatch;
         import org.springframework.batch.item.ItemProcessor;
 
 public class ProcessorStep1 implements ItemProcessor<Person, Person> {
-
-    /* PersonItemProcessor implementa l'interfaccia ItemProcessor di Spring Batch
-    /* Questo facilita il collegamento del codice a un job batch.
-
-    /* In base all'interfaccia, si riceve un oggetto Person in ingresso e lo si trasforma in un Person maiuscolo.*/
-    private static final Logger log = LoggerFactory.getLogger(ProcessorStep1.class); //???
+    private static final Logger log = LoggerFactory.getLogger(ProcessorStep1.class);
 
     @Override
     public Person process(final Person person) throws Exception {

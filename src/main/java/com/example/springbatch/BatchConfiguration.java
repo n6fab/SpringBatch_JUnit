@@ -41,7 +41,7 @@ public class BatchConfiguration {
     @Autowired
     private DataSource dataSource;
 
-//Aggiungiamo i bean alla classe BatchConfiguration per definire un reader, un processor e un writer:
+//bean classe BatchConfiguration per reader, processor e writer:
 
     //definisce l'ingresso, il processore e l'uscita.
     @Bean
@@ -90,7 +90,7 @@ public class BatchConfiguration {
     public JdbcBatchItemWriter<Person> writer(DataSource dataSource) { //  writer(DataSource) crea un ItemWriter,
         return new JdbcBatchItemWriterBuilder<Person>() //questo è indirizzato a una destinazione JDBC e ottiene automaticamente una copia della sorgente dati creata da @EnableBatchProcessing.
                 .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
-                .sql("INSERT INTO people (first_name, last_name) VALUES (:firstName, :lastName)") //istruzione SQL necessaria per inserire una singola Persona, guidata dalle proprietà del bean Java.
+                .sql("INSERT INTO people (first_name, last_name) VALUES (:firstName, :lastName)")
                 .dataSource(dataSource)
                 .build();
     }
@@ -120,7 +120,7 @@ public class BatchConfiguration {
                 .next(step2)
                 .next(step3)
                 .end()
-                .build();//Il lavoro termina e l'API Java produce un lavoro perfettamente configurato.
+                .build();//il lavoro termina
     }
 
     // I job sono costruiti da steps, dove ogni steps può coinvolgere un reader, un processor e un writer
