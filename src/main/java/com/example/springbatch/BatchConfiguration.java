@@ -69,7 +69,7 @@ public class BatchConfiguration {
     public FlatFileItemReader<Person> reader2() { // reader() crea un ItemReader e
         return new FlatFileItemReaderBuilder<Person>()
                 .name("personItemReader")
-                .resource(new ClassPathResource("output.txt")) // cerca un file chiamato sample-data.csv, analizza ogni riga con informazioni sufficienti per
+                .resource(new ClassPathResource("spring-batch/output.txt")) // cerca un file chiamato sample-data.csv, analizza ogni riga con informazioni sufficienti per
                 .delimited()
                 .names(new String[]{"firstName", "lastName"})
                 .fieldSetMapper(new BeanWrapperFieldSetMapper<Person>() {{ // trasformarla in un Person.
@@ -98,7 +98,7 @@ public class BatchConfiguration {
     public FlatFileItemWriter itemWriter2() {
         return  new FlatFileItemWriterBuilder<Person>()
                 .name("itemWriter")
-                .resource(new FileSystemResource("output.txt"))
+                .resource(new FileSystemResource("spring-batch/output.txt"))
                 .lineAggregator(new PassThroughLineAggregator<>())
                 .build();
     }

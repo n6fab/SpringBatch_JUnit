@@ -71,7 +71,7 @@ public class BatchTest {
         // then
         assertThat(actualJobExitStatus.getExitCode(), is("COMPLETED"));
         assertThat(actualJobInstance.getJobName(), is("importUserJob"));
-//       AssertFile.assertFileEquals(expectedResult, actualResult);
+       AssertFile.assertFileEquals(expectedResult, actualResult);
 
     }
 
@@ -89,9 +89,9 @@ public class BatchTest {
 
         assertThat(actualStepExecutions.size(), is(1));
         assertThat(actualJobExitStatus.getExitCode(), is("COMPLETED"));
-//       AssertFile.assertFileEquals(expectedResult, actualResult);
-//        AssertFile.assertFileEquals(new FileSystemResource(EXPECTED_OUTPUT),
-        //        new FileSystemResource(TEST_OUTPUT));
+       AssertFile.assertFileEquals(expectedResult, actualResult);
+        AssertFile.assertFileEquals(new FileSystemResource(EXPECTED_OUTPUT),
+               new FileSystemResource(TEST_OUTPUT));
     }
 
     @Test
